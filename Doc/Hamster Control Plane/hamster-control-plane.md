@@ -26,3 +26,6 @@ Responsible for scheduling workloads onto available worker nodes.
 
 ### hm-manager
 Responsible for managing the core lifecycle and state of workloads.
+
+# Initial Architecture
+![Architecture](https://raw.githubusercontent.com/pawan1mehta/Hamster/main/Doc/Architecture/initial.drawio.svg.svg)
