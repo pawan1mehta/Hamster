@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package rpc;
+option go_package = "containerd_grassland/rpc";
+
+service RuntimeService {
+  rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse) {}
+
+  rpc StartContainer(StartContainerRequest) returns (StartContainerResponse) {}
+}
+
+message CreateContainerRequest {
+  ContainerConfig config = 1;
+}
+
+message CreateContainerResponse {
+  string container_id = 1;
+}
+
+message StartContainerRequest {
+  string container_id = 1;
+}
+
+message StartContainerResponse {}
+
+message ContainerConfig {
+  // Metadata of the container
+  ContainerMetadata metadat = 1;
+
+  ImageSpec image = 2;
+
+  // Command to execute (i.e, entry point for docker container)
+  repeated string command = 3;
+  // Args for the Command
+  repeated string args = 4;
+  // Current working directory for the command.
+  string working_dir = 5;
+  // List of environment variable to set in the container
+  repeated KeyValue envs = 6;
+}
+
+message KeyValue {
+  string key = 1;
+  bytes value = 2;
+}
+
+message ContainerMetadata {
+  // name of the container
+  string name = 2;
+}
+
+enum ContainerState {
+  CONTAINER_CREATED = 0;
+  CONTAINER_RUNNING = 1;
+  CONTAINER_EXITED = 2;
+  CONTAINER_UNKNOW = 3;
+}
+
+message ImageSpec {
+  // imageID o imaDigest
+  string image = 1;
+}
+
+message Container {
+  // ID of the container
+  uint64 ID = 1;
+
+  // Metadata of the container
+  ContainerMetadata metadata = 2;
+
+  // State of the container
+  ContainerState state = 3;
+
+  // Image of the container
+  ImageSpec imageSpec = 4;
+}
