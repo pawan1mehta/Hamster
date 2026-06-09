@@ -21,6 +21,9 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	RuntimeService_CreateContainer_FullMethodName = "/rpc.RuntimeService/CreateContainer"
 	RuntimeService_StartContainer_FullMethodName  = "/rpc.RuntimeService/StartContainer"
+	RuntimeService_StopContainer_FullMethodName   = "/rpc.RuntimeService/StopContainer"
+	RuntimeService_RemoveContainer_FullMethodName = "/rpc.RuntimeService/RemoveContainer"
+	RuntimeService_ContainerStatus_FullMethodName = "/rpc.RuntimeService/ContainerStatus"
 )
 
 // RuntimeServiceClient is the client API for RuntimeService service.
@@ -29,6 +32,9 @@ const (
 type RuntimeServiceClient interface {
 	CreateContainer(ctx context.Context, in *CreateContainerRequest, opts ...grpc.CallOption) (*CreateContainerResponse, error)
 	StartContainer(ctx context.Context, in *StartContainerRequest, opts ...grpc.CallOption) (*StartContainerResponse, error)
+	StopContainer(ctx context.Context, in *StopContainerRequest, opts ...grpc.CallOption) (*StopContainerResponse, error)
+	RemoveContainer(ctx context.Context, in *RemoveContainerRequest, opts ...grpc.CallOption) (*RemoveContainerResponse, error)
+	ContainerStatus(ctx context.Context, in *ContainerStatusRequest, opts ...grpc.CallOption) (*ContainerStatusResponse, error)
 }
 
 type runtimeServiceClient struct {
@@ -59,12 +65,45 @@ func (c *runtimeServiceClient) StartContainer(ctx context.Context, in *StartCont
 	return out, nil
 }
 
+func (c *runtimeServiceClient) StopContainer(ctx context.Context, in *StopContainerRequest, opts ...grpc.CallOption) (*StopContainerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StopContainerResponse)
+	err := c.cc.Invoke(ctx, RuntimeService_StopContainer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeServiceClient) RemoveContainer(ctx context.Context, in *RemoveContainerRequest, opts ...grpc.CallOption) (*RemoveContainerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveContainerResponse)
+	err := c.cc.Invoke(ctx, RuntimeService_RemoveContainer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeServiceClient) ContainerStatus(ctx context.Context, in *ContainerStatusRequest, opts ...grpc.CallOption) (*ContainerStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ContainerStatusResponse)
+	err := c.cc.Invoke(ctx, RuntimeService_ContainerStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeServiceServer is the server API for RuntimeService service.
 // All implementations must embed UnimplementedRuntimeServiceServer
 // for forward compatibility.
 type RuntimeServiceServer interface {
 	CreateContainer(context.Context, *CreateContainerRequest) (*CreateContainerResponse, error)
 	StartContainer(context.Context, *StartContainerRequest) (*StartContainerResponse, error)
+	StopContainer(context.Context, *StopContainerRequest) (*StopContainerResponse, error)
+	RemoveContainer(context.Context, *RemoveContainerRequest) (*RemoveContainerResponse, error)
+	ContainerStatus(context.Context, *ContainerStatusRequest) (*ContainerStatusResponse, error)
 	mustEmbedUnimplementedRuntimeServiceServer()
 }
 
@@ -80,6 +119,15 @@ func (UnimplementedRuntimeServiceServer) CreateContainer(context.Context, *Creat
 }
 func (UnimplementedRuntimeServiceServer) StartContainer(context.Context, *StartContainerRequest) (*StartContainerResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartContainer not implemented")
+}
+func (UnimplementedRuntimeServiceServer) StopContainer(context.Context, *StopContainerRequest) (*StopContainerResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StopContainer not implemented")
+}
+func (UnimplementedRuntimeServiceServer) RemoveContainer(context.Context, *RemoveContainerRequest) (*RemoveContainerResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveContainer not implemented")
+}
+func (UnimplementedRuntimeServiceServer) ContainerStatus(context.Context, *ContainerStatusRequest) (*ContainerStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ContainerStatus not implemented")
 }
 func (UnimplementedRuntimeServiceServer) mustEmbedUnimplementedRuntimeServiceServer() {}
 func (UnimplementedRuntimeServiceServer) testEmbeddedByValue()                        {}
@@ -138,6 +186,60 @@ func _RuntimeService_StartContainer_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeService_StopContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StopContainerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeServiceServer).StopContainer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeService_StopContainer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeServiceServer).StopContainer(ctx, req.(*StopContainerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeService_RemoveContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveContainerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeServiceServer).RemoveContainer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeService_RemoveContainer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeServiceServer).RemoveContainer(ctx, req.(*RemoveContainerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeService_ContainerStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ContainerStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeServiceServer).ContainerStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeService_ContainerStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeServiceServer).ContainerStatus(ctx, req.(*ContainerStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeService_ServiceDesc is the grpc.ServiceDesc for RuntimeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +254,18 @@ var RuntimeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartContainer",
 			Handler:    _RuntimeService_StartContainer_Handler,
+		},
+		{
+			MethodName: "StopContainer",
+			Handler:    _RuntimeService_StopContainer_Handler,
+		},
+		{
+			MethodName: "RemoveContainer",
+			Handler:    _RuntimeService_RemoveContainer_Handler,
+		},
+		{
+			MethodName: "ContainerStatus",
+			Handler:    _RuntimeService_ContainerStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

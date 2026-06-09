@@ -7,6 +7,12 @@ service RuntimeService {
   rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResponse) {}
 
   rpc StartContainer(StartContainerRequest) returns (StartContainerResponse) {}
+
+  rpc StopContainer(StopContainerRequest) returns (StopContainerResponse) {}
+
+  rpc RemoveContainer(RemoveContainerRequest) returns (RemoveContainerResponse) {}
+
+  rpc ContainerStatus(ContainerStatusRequest) returns (ContainerStatusResponse) {}
 }
 
 message CreateContainerRequest {
@@ -25,7 +31,7 @@ message StartContainerResponse {}
 
 message ContainerConfig {
   // Metadata of the container
-  ContainerMetadata metadat = 1;
+  ContainerMetadata metadata = 1;
 
   ImageSpec image = 2;
 
@@ -37,6 +43,17 @@ message ContainerConfig {
   string working_dir = 5;
   // List of environment variable to set in the container
   repeated KeyValue envs = 6;
+
+  ResourceLimits resources = 7;
+
+
+  repeated Mount mounts = 8;
+
+  NetworkConfig network = 9;
+
+  SecurityConfig security = 10;
+
+  bool terminal = 11;
 }
 
 message KeyValue {
@@ -53,7 +70,7 @@ enum ContainerState {
   CONTAINER_CREATED = 0;
   CONTAINER_RUNNING = 1;
   CONTAINER_EXITED = 2;
-  CONTAINER_UNKNOW = 3;
+  CONTAINER_UNKNOWN = 3;
 }
 
 message ImageSpec {
@@ -73,4 +90,66 @@ message Container {
 
   // Image of the container
   ImageSpec imageSpec = 4;
+}
+
+message ResourceLimits {
+  int64 memory_limit_bytes = 1;
+  double cpu_limit = 2;
+  int64 pids_limit = 3;
+}
+
+message Mount {
+  // host path
+  string source = 1;
+
+  // path inside container
+  string destination = 2;
+
+  string type = 3;
+
+  bool readonly = 4;
+}
+
+message NetworkConfig {
+    NetworkMode mode = 1;
+}
+
+enum NetworkMode {
+  // isolated netns, no IP
+  NETWORK_NONE = 0;
+
+  // use host network stack
+  NETWORK_HOST = 1;
+}
+
+message SecurityConfig {
+  bool readonly_rootfs = 1;
+  bool no_new_privileges = 2;
+  uint32 run_as_user = 3;
+  uint32 run_as_group = 4;
+}
+
+message StopContainerRequest {
+  string container_id = 1;
+  uint32 timeout_seconds = 2;
+}
+
+message StopContainerResponse {}
+
+message RemoveContainerRequest {
+  string container_id = 1;
+}
+
+message RemoveContainerResponse {}
+
+message ContainerStatusRequest {
+    string container_id = 1;
+}
+
+message ContainerStatusResponse {
+  string container_id = 1;
+  ContainerState state = 2;
+  uint32 pid = 3;
+  int32 exit_code = 4;
+  string exit_reason = 5;
 }

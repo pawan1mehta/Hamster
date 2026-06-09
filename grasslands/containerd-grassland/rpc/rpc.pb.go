@@ -73,6 +73,54 @@ func (ContainerState) EnumDescriptor() ([]byte, []int) {
 	return file_rpc_proto_rawDescGZIP(), []int{0}
 }
 
+type NetworkMode int32
+
+const (
+	// isolated netns, no IP
+	NetworkMode_NETWORK_NONE NetworkMode = 0
+	// use host network stack
+	NetworkMode_NETWORK_HOST NetworkMode = 1
+)
+
+// Enum value maps for NetworkMode.
+var (
+	NetworkMode_name = map[int32]string{
+		0: "NETWORK_NONE",
+		1: "NETWORK_HOST",
+	}
+	NetworkMode_value = map[string]int32{
+		"NETWORK_NONE": 0,
+		"NETWORK_HOST": 1,
+	}
+)
+
+func (x NetworkMode) Enum() *NetworkMode {
+	p := new(NetworkMode)
+	*p = x
+	return p
+}
+
+func (x NetworkMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (NetworkMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_rpc_proto_enumTypes[1].Descriptor()
+}
+
+func (NetworkMode) Type() protoreflect.EnumType {
+	return &file_rpc_proto_enumTypes[1]
+}
+
+func (x NetworkMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use NetworkMode.Descriptor instead.
+func (NetworkMode) EnumDescriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{1}
+}
+
 type CreateContainerRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Config        *ContainerConfig       `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
@@ -244,8 +292,8 @@ func (*StartContainerResponse) Descriptor() ([]byte, []int) {
 type ContainerConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Metadata of the container
-	Metadat *ContainerMetadata `protobuf:"bytes,1,opt,name=metadat,proto3" json:"metadat,omitempty"`
-	Image   *ImageSpec         `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	Metadata *ContainerMetadata `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Image    *ImageSpec         `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
 	// Command to execute (i.e, entry point for docker container)
 	Command []string `protobuf:"bytes,3,rep,name=command,proto3" json:"command,omitempty"`
 	// Args for the Command
@@ -253,7 +301,12 @@ type ContainerConfig struct {
 	// Current working directory for the command.
 	WorkingDir string `protobuf:"bytes,5,opt,name=working_dir,json=workingDir,proto3" json:"working_dir,omitempty"`
 	// List of environment variable to set in the container
-	Envs          []*KeyValue `protobuf:"bytes,6,rep,name=envs,proto3" json:"envs,omitempty"`
+	Envs          []*KeyValue     `protobuf:"bytes,6,rep,name=envs,proto3" json:"envs,omitempty"`
+	Resources     *ResourceLimits `protobuf:"bytes,7,opt,name=resources,proto3" json:"resources,omitempty"`
+	Mounts        []*Mount        `protobuf:"bytes,8,rep,name=mounts,proto3" json:"mounts,omitempty"`
+	Network       *NetworkConfig  `protobuf:"bytes,9,opt,name=network,proto3" json:"network,omitempty"`
+	Security      *SecurityConfig `protobuf:"bytes,10,opt,name=security,proto3" json:"security,omitempty"`
+	Terminal      bool            `protobuf:"varint,11,opt,name=terminal,proto3" json:"terminal,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -288,9 +341,9 @@ func (*ContainerConfig) Descriptor() ([]byte, []int) {
 	return file_rpc_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ContainerConfig) GetMetadat() *ContainerMetadata {
+func (x *ContainerConfig) GetMetadata() *ContainerMetadata {
 	if x != nil {
-		return x.Metadat
+		return x.Metadata
 	}
 	return nil
 }
@@ -328,6 +381,41 @@ func (x *ContainerConfig) GetEnvs() []*KeyValue {
 		return x.Envs
 	}
 	return nil
+}
+
+func (x *ContainerConfig) GetResources() *ResourceLimits {
+	if x != nil {
+		return x.Resources
+	}
+	return nil
+}
+
+func (x *ContainerConfig) GetMounts() []*Mount {
+	if x != nil {
+		return x.Mounts
+	}
+	return nil
+}
+
+func (x *ContainerConfig) GetNetwork() *NetworkConfig {
+	if x != nil {
+		return x.Network
+	}
+	return nil
+}
+
+func (x *ContainerConfig) GetSecurity() *SecurityConfig {
+	if x != nil {
+		return x.Security
+	}
+	return nil
+}
+
+func (x *ContainerConfig) GetTerminal() bool {
+	if x != nil {
+		return x.Terminal
+	}
+	return false
 }
 
 type KeyValue struct {
@@ -544,6 +632,536 @@ func (x *Container) GetImageSpec() *ImageSpec {
 	return nil
 }
 
+type ResourceLimits struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	MemoryLimitBytes int64                  `protobuf:"varint,1,opt,name=memory_limit_bytes,json=memoryLimitBytes,proto3" json:"memory_limit_bytes,omitempty"`
+	CpuLimit         float64                `protobuf:"fixed64,2,opt,name=cpu_limit,json=cpuLimit,proto3" json:"cpu_limit,omitempty"`
+	PidsLimit        int64                  `protobuf:"varint,3,opt,name=pids_limit,json=pidsLimit,proto3" json:"pids_limit,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ResourceLimits) Reset() {
+	*x = ResourceLimits{}
+	mi := &file_rpc_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResourceLimits) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResourceLimits) ProtoMessage() {}
+
+func (x *ResourceLimits) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResourceLimits.ProtoReflect.Descriptor instead.
+func (*ResourceLimits) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ResourceLimits) GetMemoryLimitBytes() int64 {
+	if x != nil {
+		return x.MemoryLimitBytes
+	}
+	return 0
+}
+
+func (x *ResourceLimits) GetCpuLimit() float64 {
+	if x != nil {
+		return x.CpuLimit
+	}
+	return 0
+}
+
+func (x *ResourceLimits) GetPidsLimit() int64 {
+	if x != nil {
+		return x.PidsLimit
+	}
+	return 0
+}
+
+type Mount struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// host path
+	Source string `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	// path inside container
+	Destination   string `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
+	Type          string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Readonly      bool   `protobuf:"varint,4,opt,name=readonly,proto3" json:"readonly,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Mount) Reset() {
+	*x = Mount{}
+	mi := &file_rpc_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Mount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Mount) ProtoMessage() {}
+
+func (x *Mount) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Mount.ProtoReflect.Descriptor instead.
+func (*Mount) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Mount) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *Mount) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
+func (x *Mount) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *Mount) GetReadonly() bool {
+	if x != nil {
+		return x.Readonly
+	}
+	return false
+}
+
+type NetworkConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mode          NetworkMode            `protobuf:"varint,1,opt,name=mode,proto3,enum=rpc.NetworkMode" json:"mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NetworkConfig) Reset() {
+	*x = NetworkConfig{}
+	mi := &file_rpc_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkConfig) ProtoMessage() {}
+
+func (x *NetworkConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkConfig.ProtoReflect.Descriptor instead.
+func (*NetworkConfig) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *NetworkConfig) GetMode() NetworkMode {
+	if x != nil {
+		return x.Mode
+	}
+	return NetworkMode_NETWORK_NONE
+}
+
+type SecurityConfig struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	ReadonlyRootfs  bool                   `protobuf:"varint,1,opt,name=readonly_rootfs,json=readonlyRootfs,proto3" json:"readonly_rootfs,omitempty"`
+	NoNewPrivileges bool                   `protobuf:"varint,2,opt,name=no_new_privileges,json=noNewPrivileges,proto3" json:"no_new_privileges,omitempty"`
+	RunAsUser       uint32                 `protobuf:"varint,3,opt,name=run_as_user,json=runAsUser,proto3" json:"run_as_user,omitempty"`
+	RunAsGroup      uint32                 `protobuf:"varint,4,opt,name=run_as_group,json=runAsGroup,proto3" json:"run_as_group,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *SecurityConfig) Reset() {
+	*x = SecurityConfig{}
+	mi := &file_rpc_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SecurityConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SecurityConfig) ProtoMessage() {}
+
+func (x *SecurityConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SecurityConfig.ProtoReflect.Descriptor instead.
+func (*SecurityConfig) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SecurityConfig) GetReadonlyRootfs() bool {
+	if x != nil {
+		return x.ReadonlyRootfs
+	}
+	return false
+}
+
+func (x *SecurityConfig) GetNoNewPrivileges() bool {
+	if x != nil {
+		return x.NoNewPrivileges
+	}
+	return false
+}
+
+func (x *SecurityConfig) GetRunAsUser() uint32 {
+	if x != nil {
+		return x.RunAsUser
+	}
+	return 0
+}
+
+func (x *SecurityConfig) GetRunAsGroup() uint32 {
+	if x != nil {
+		return x.RunAsGroup
+	}
+	return 0
+}
+
+type StopContainerRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ContainerId    string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	TimeoutSeconds uint32                 `protobuf:"varint,2,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *StopContainerRequest) Reset() {
+	*x = StopContainerRequest{}
+	mi := &file_rpc_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopContainerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopContainerRequest) ProtoMessage() {}
+
+func (x *StopContainerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopContainerRequest.ProtoReflect.Descriptor instead.
+func (*StopContainerRequest) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *StopContainerRequest) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *StopContainerRequest) GetTimeoutSeconds() uint32 {
+	if x != nil {
+		return x.TimeoutSeconds
+	}
+	return 0
+}
+
+type StopContainerResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopContainerResponse) Reset() {
+	*x = StopContainerResponse{}
+	mi := &file_rpc_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopContainerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopContainerResponse) ProtoMessage() {}
+
+func (x *StopContainerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopContainerResponse.ProtoReflect.Descriptor instead.
+func (*StopContainerResponse) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{14}
+}
+
+type RemoveContainerRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveContainerRequest) Reset() {
+	*x = RemoveContainerRequest{}
+	mi := &file_rpc_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveContainerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveContainerRequest) ProtoMessage() {}
+
+func (x *RemoveContainerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveContainerRequest.ProtoReflect.Descriptor instead.
+func (*RemoveContainerRequest) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *RemoveContainerRequest) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+type RemoveContainerResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveContainerResponse) Reset() {
+	*x = RemoveContainerResponse{}
+	mi := &file_rpc_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveContainerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveContainerResponse) ProtoMessage() {}
+
+func (x *RemoveContainerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveContainerResponse.ProtoReflect.Descriptor instead.
+func (*RemoveContainerResponse) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{16}
+}
+
+type ContainerStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContainerStatusRequest) Reset() {
+	*x = ContainerStatusRequest{}
+	mi := &file_rpc_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerStatusRequest) ProtoMessage() {}
+
+func (x *ContainerStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerStatusRequest.ProtoReflect.Descriptor instead.
+func (*ContainerStatusRequest) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ContainerStatusRequest) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+type ContainerStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	State         ContainerState         `protobuf:"varint,2,opt,name=state,proto3,enum=rpc.ContainerState" json:"state,omitempty"`
+	Pid           uint32                 `protobuf:"varint,3,opt,name=pid,proto3" json:"pid,omitempty"`
+	ExitCode      int32                  `protobuf:"varint,4,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	ExitReason    string                 `protobuf:"bytes,5,opt,name=exit_reason,json=exitReason,proto3" json:"exit_reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContainerStatusResponse) Reset() {
+	*x = ContainerStatusResponse{}
+	mi := &file_rpc_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerStatusResponse) ProtoMessage() {}
+
+func (x *ContainerStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rpc_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerStatusResponse.ProtoReflect.Descriptor instead.
+func (*ContainerStatusResponse) Descriptor() ([]byte, []int) {
+	return file_rpc_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ContainerStatusResponse) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *ContainerStatusResponse) GetState() ContainerState {
+	if x != nil {
+		return x.State
+	}
+	return ContainerState_CONTAINER_CREATED
+}
+
+func (x *ContainerStatusResponse) GetPid() uint32 {
+	if x != nil {
+		return x.Pid
+	}
+	return 0
+}
+
+func (x *ContainerStatusResponse) GetExitCode() int32 {
+	if x != nil {
+		return x.ExitCode
+	}
+	return 0
+}
+
+func (x *ContainerStatusResponse) GetExitReason() string {
+	if x != nil {
+		return x.ExitReason
+	}
+	return ""
+}
+
 var File_rpc_proto protoreflect.FileDescriptor
 
 const file_rpc_proto_rawDesc = "" +
@@ -555,15 +1173,22 @@ const file_rpc_proto_rawDesc = "" +
 	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\":\n" +
 	"\x15StartContainerRequest\x12!\n" +
 	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\"\x18\n" +
-	"\x16StartContainerResponse\"\xdb\x01\n" +
-	"\x0fContainerConfig\x120\n" +
-	"\ametadat\x18\x01 \x01(\v2\x16.rpc.ContainerMetadataR\ametadat\x12$\n" +
+	"\x16StartContainerResponse\"\xaf\x03\n" +
+	"\x0fContainerConfig\x122\n" +
+	"\bmetadata\x18\x01 \x01(\v2\x16.rpc.ContainerMetadataR\bmetadata\x12$\n" +
 	"\x05image\x18\x02 \x01(\v2\x0e.rpc.ImageSpecR\x05image\x12\x18\n" +
 	"\acommand\x18\x03 \x03(\tR\acommand\x12\x12\n" +
 	"\x04args\x18\x04 \x03(\tR\x04args\x12\x1f\n" +
 	"\vworking_dir\x18\x05 \x01(\tR\n" +
 	"workingDir\x12!\n" +
-	"\x04envs\x18\x06 \x03(\v2\r.rpc.KeyValueR\x04envs\"2\n" +
+	"\x04envs\x18\x06 \x03(\v2\r.rpc.KeyValueR\x04envs\x121\n" +
+	"\tresources\x18\a \x01(\v2\x13.rpc.ResourceLimitsR\tresources\x12\"\n" +
+	"\x06mounts\x18\b \x03(\v2\n" +
+	".rpc.MountR\x06mounts\x12,\n" +
+	"\anetwork\x18\t \x01(\v2\x12.rpc.NetworkConfigR\anetwork\x12/\n" +
+	"\bsecurity\x18\n" +
+	" \x01(\v2\x13.rpc.SecurityConfigR\bsecurity\x12\x1a\n" +
+	"\bterminal\x18\v \x01(\bR\bterminal\"2\n" +
 	"\bKeyValue\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\fR\x05value\"'\n" +
@@ -575,15 +1200,55 @@ const file_rpc_proto_rawDesc = "" +
 	"\x02ID\x18\x01 \x01(\x04R\x02ID\x122\n" +
 	"\bmetadata\x18\x02 \x01(\v2\x16.rpc.ContainerMetadataR\bmetadata\x12)\n" +
 	"\x05state\x18\x03 \x01(\x0e2\x13.rpc.ContainerStateR\x05state\x12,\n" +
-	"\timageSpec\x18\x04 \x01(\v2\x0e.rpc.ImageSpecR\timageSpec*j\n" +
+	"\timageSpec\x18\x04 \x01(\v2\x0e.rpc.ImageSpecR\timageSpec\"z\n" +
+	"\x0eResourceLimits\x12,\n" +
+	"\x12memory_limit_bytes\x18\x01 \x01(\x03R\x10memoryLimitBytes\x12\x1b\n" +
+	"\tcpu_limit\x18\x02 \x01(\x01R\bcpuLimit\x12\x1d\n" +
+	"\n" +
+	"pids_limit\x18\x03 \x01(\x03R\tpidsLimit\"q\n" +
+	"\x05Mount\x12\x16\n" +
+	"\x06source\x18\x01 \x01(\tR\x06source\x12 \n" +
+	"\vdestination\x18\x02 \x01(\tR\vdestination\x12\x12\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x12\x1a\n" +
+	"\breadonly\x18\x04 \x01(\bR\breadonly\"5\n" +
+	"\rNetworkConfig\x12$\n" +
+	"\x04mode\x18\x01 \x01(\x0e2\x10.rpc.NetworkModeR\x04mode\"\xa7\x01\n" +
+	"\x0eSecurityConfig\x12'\n" +
+	"\x0freadonly_rootfs\x18\x01 \x01(\bR\x0ereadonlyRootfs\x12*\n" +
+	"\x11no_new_privileges\x18\x02 \x01(\bR\x0fnoNewPrivileges\x12\x1e\n" +
+	"\vrun_as_user\x18\x03 \x01(\rR\trunAsUser\x12 \n" +
+	"\frun_as_group\x18\x04 \x01(\rR\n" +
+	"runAsGroup\"b\n" +
+	"\x14StopContainerRequest\x12!\n" +
+	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x12'\n" +
+	"\x0ftimeout_seconds\x18\x02 \x01(\rR\x0etimeoutSeconds\"\x17\n" +
+	"\x15StopContainerResponse\";\n" +
+	"\x16RemoveContainerRequest\x12!\n" +
+	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\"\x19\n" +
+	"\x17RemoveContainerResponse\";\n" +
+	"\x16ContainerStatusRequest\x12!\n" +
+	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\"\xb7\x01\n" +
+	"\x17ContainerStatusResponse\x12!\n" +
+	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x12)\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x13.rpc.ContainerStateR\x05state\x12\x10\n" +
+	"\x03pid\x18\x03 \x01(\rR\x03pid\x12\x1b\n" +
+	"\texit_code\x18\x04 \x01(\x05R\bexitCode\x12\x1f\n" +
+	"\vexit_reason\x18\x05 \x01(\tR\n" +
+	"exitReason*j\n" +
 	"\x0eContainerState\x12\x15\n" +
 	"\x11CONTAINER_CREATED\x10\x00\x12\x15\n" +
 	"\x11CONTAINER_RUNNING\x10\x01\x12\x14\n" +
 	"\x10CONTAINER_EXITED\x10\x02\x12\x14\n" +
-	"\x10CONTAINER_UNKNOW\x10\x032\xad\x01\n" +
+	"\x10CONTAINER_UNKNOW\x10\x03*1\n" +
+	"\vNetworkMode\x12\x10\n" +
+	"\fNETWORK_NONE\x10\x00\x12\x10\n" +
+	"\fNETWORK_HOST\x10\x012\x97\x03\n" +
 	"\x0eRuntimeService\x12N\n" +
 	"\x0fCreateContainer\x12\x1b.rpc.CreateContainerRequest\x1a\x1c.rpc.CreateContainerResponse\"\x00\x12K\n" +
-	"\x0eStartContainer\x12\x1a.rpc.StartContainerRequest\x1a\x1b.rpc.StartContainerResponse\"\x00B\x1aZ\x18containerd_grassland/rpcb\x06proto3"
+	"\x0eStartContainer\x12\x1a.rpc.StartContainerRequest\x1a\x1b.rpc.StartContainerResponse\"\x00\x12H\n" +
+	"\rStopContainer\x12\x19.rpc.StopContainerRequest\x1a\x1a.rpc.StopContainerResponse\"\x00\x12N\n" +
+	"\x0fRemoveContainer\x12\x1b.rpc.RemoveContainerRequest\x1a\x1c.rpc.RemoveContainerResponse\"\x00\x12N\n" +
+	"\x0fContainerStatus\x12\x1b.rpc.ContainerStatusRequest\x1a\x1c.rpc.ContainerStatusResponse\"\x00B\x1aZ\x18containerd_grassland/rpcb\x06proto3"
 
 var (
 	file_rpc_proto_rawDescOnce sync.Once
@@ -597,37 +1262,60 @@ func file_rpc_proto_rawDescGZIP() []byte {
 	return file_rpc_proto_rawDescData
 }
 
-var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_rpc_proto_goTypes = []any{
 	(ContainerState)(0),             // 0: rpc.ContainerState
-	(*CreateContainerRequest)(nil),  // 1: rpc.CreateContainerRequest
-	(*CreateContainerResponse)(nil), // 2: rpc.CreateContainerResponse
-	(*StartContainerRequest)(nil),   // 3: rpc.StartContainerRequest
-	(*StartContainerResponse)(nil),  // 4: rpc.StartContainerResponse
-	(*ContainerConfig)(nil),         // 5: rpc.ContainerConfig
-	(*KeyValue)(nil),                // 6: rpc.KeyValue
-	(*ContainerMetadata)(nil),       // 7: rpc.ContainerMetadata
-	(*ImageSpec)(nil),               // 8: rpc.ImageSpec
-	(*Container)(nil),               // 9: rpc.Container
+	(NetworkMode)(0),                // 1: rpc.NetworkMode
+	(*CreateContainerRequest)(nil),  // 2: rpc.CreateContainerRequest
+	(*CreateContainerResponse)(nil), // 3: rpc.CreateContainerResponse
+	(*StartContainerRequest)(nil),   // 4: rpc.StartContainerRequest
+	(*StartContainerResponse)(nil),  // 5: rpc.StartContainerResponse
+	(*ContainerConfig)(nil),         // 6: rpc.ContainerConfig
+	(*KeyValue)(nil),                // 7: rpc.KeyValue
+	(*ContainerMetadata)(nil),       // 8: rpc.ContainerMetadata
+	(*ImageSpec)(nil),               // 9: rpc.ImageSpec
+	(*Container)(nil),               // 10: rpc.Container
+	(*ResourceLimits)(nil),          // 11: rpc.ResourceLimits
+	(*Mount)(nil),                   // 12: rpc.Mount
+	(*NetworkConfig)(nil),           // 13: rpc.NetworkConfig
+	(*SecurityConfig)(nil),          // 14: rpc.SecurityConfig
+	(*StopContainerRequest)(nil),    // 15: rpc.StopContainerRequest
+	(*StopContainerResponse)(nil),   // 16: rpc.StopContainerResponse
+	(*RemoveContainerRequest)(nil),  // 17: rpc.RemoveContainerRequest
+	(*RemoveContainerResponse)(nil), // 18: rpc.RemoveContainerResponse
+	(*ContainerStatusRequest)(nil),  // 19: rpc.ContainerStatusRequest
+	(*ContainerStatusResponse)(nil), // 20: rpc.ContainerStatusResponse
 }
 var file_rpc_proto_depIdxs = []int32{
-	5, // 0: rpc.CreateContainerRequest.config:type_name -> rpc.ContainerConfig
-	7, // 1: rpc.ContainerConfig.metadat:type_name -> rpc.ContainerMetadata
-	8, // 2: rpc.ContainerConfig.image:type_name -> rpc.ImageSpec
-	6, // 3: rpc.ContainerConfig.envs:type_name -> rpc.KeyValue
-	7, // 4: rpc.Container.metadata:type_name -> rpc.ContainerMetadata
-	0, // 5: rpc.Container.state:type_name -> rpc.ContainerState
-	8, // 6: rpc.Container.imageSpec:type_name -> rpc.ImageSpec
-	1, // 7: rpc.RuntimeService.CreateContainer:input_type -> rpc.CreateContainerRequest
-	3, // 8: rpc.RuntimeService.StartContainer:input_type -> rpc.StartContainerRequest
-	2, // 9: rpc.RuntimeService.CreateContainer:output_type -> rpc.CreateContainerResponse
-	4, // 10: rpc.RuntimeService.StartContainer:output_type -> rpc.StartContainerResponse
-	9, // [9:11] is the sub-list for method output_type
-	7, // [7:9] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	6,  // 0: rpc.CreateContainerRequest.config:type_name -> rpc.ContainerConfig
+	8,  // 1: rpc.ContainerConfig.metadata:type_name -> rpc.ContainerMetadata
+	9,  // 2: rpc.ContainerConfig.image:type_name -> rpc.ImageSpec
+	7,  // 3: rpc.ContainerConfig.envs:type_name -> rpc.KeyValue
+	11, // 4: rpc.ContainerConfig.resources:type_name -> rpc.ResourceLimits
+	12, // 5: rpc.ContainerConfig.mounts:type_name -> rpc.Mount
+	13, // 6: rpc.ContainerConfig.network:type_name -> rpc.NetworkConfig
+	14, // 7: rpc.ContainerConfig.security:type_name -> rpc.SecurityConfig
+	8,  // 8: rpc.Container.metadata:type_name -> rpc.ContainerMetadata
+	0,  // 9: rpc.Container.state:type_name -> rpc.ContainerState
+	9,  // 10: rpc.Container.imageSpec:type_name -> rpc.ImageSpec
+	1,  // 11: rpc.NetworkConfig.mode:type_name -> rpc.NetworkMode
+	0,  // 12: rpc.ContainerStatusResponse.state:type_name -> rpc.ContainerState
+	2,  // 13: rpc.RuntimeService.CreateContainer:input_type -> rpc.CreateContainerRequest
+	4,  // 14: rpc.RuntimeService.StartContainer:input_type -> rpc.StartContainerRequest
+	15, // 15: rpc.RuntimeService.StopContainer:input_type -> rpc.StopContainerRequest
+	17, // 16: rpc.RuntimeService.RemoveContainer:input_type -> rpc.RemoveContainerRequest
+	19, // 17: rpc.RuntimeService.ContainerStatus:input_type -> rpc.ContainerStatusRequest
+	3,  // 18: rpc.RuntimeService.CreateContainer:output_type -> rpc.CreateContainerResponse
+	5,  // 19: rpc.RuntimeService.StartContainer:output_type -> rpc.StartContainerResponse
+	16, // 20: rpc.RuntimeService.StopContainer:output_type -> rpc.StopContainerResponse
+	18, // 21: rpc.RuntimeService.RemoveContainer:output_type -> rpc.RemoveContainerResponse
+	20, // 22: rpc.RuntimeService.ContainerStatus:output_type -> rpc.ContainerStatusResponse
+	18, // [18:23] is the sub-list for method output_type
+	13, // [13:18] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_rpc_proto_init() }
@@ -640,8 +1328,8 @@ func file_rpc_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rpc_proto_rawDesc), len(file_rpc_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   9,
+			NumEnums:      2,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

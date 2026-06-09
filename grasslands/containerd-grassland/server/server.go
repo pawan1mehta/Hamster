@@ -1,14 +1,13 @@
 package server
 
 import (
+	containerdclient "containerdgrassland/clients/containerd"
 	"containerdgrassland/rpc"
 	"context"
 	"fmt"
 	"net"
+	"time"
 
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/oci"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -17,6 +16,9 @@ import (
 
 type ContainerdGrasslandServer struct {
 	logger *zap.Logger
+
+	containerdClient *containerdclient.Client
+
 	rpc.UnimplementedRuntimeServiceServer
 }
 
@@ -27,71 +29,109 @@ type Config struct {
 }
 
 func (server *ContainerdGrasslandServer) CreateContainer(context context.Context, request *rpc.CreateContainerRequest) (*rpc.CreateContainerResponse, error) {
+	server.logger.Info("Creating a container...")
 
-	server.logger.Info("CreateContainer called!",
-		zap.Any("request", request),
-	)
+	cfg := request.GetConfig()
 
-	client, err := containerd.New(
-		"/run/containerd/containerd.sock",
-		containerd.WithDefaultNamespace("hamster"),
-	)
+	// TODO: valid the create container config
+	validateCreateContainerConfig(cfg)
+
+	container, err := server.containerdClient.CreateContainer(context, cfg)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "connect containerd: %v", err)
-	}
-	defer client.Close()
-
-	fmt.Println("connected to containerd successfully!")
-
-	// Step 1: Pull
-	image, err := client.Pull(context, request.GetConfig().GetImage().GetImage(), containerd.WithPullUnpack)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "pull image: %v", err)
+		return nil, status.Errorf(codes.Internal, "create container: %v", err)
 	}
 
-	name := request.GetConfig().GetMetadat().GetName()
-	
-	cmd := request.GetConfig().GetCommand()
-	args := request.GetConfig().GetArgs()
+	server.logger.Info("Container created successfully!")
 
-	full := append([]string{}, cmd...)
-	full = append(full, args...)
-
-	// Step 2: Create container
-	container, err := client.NewContainer(
-		context,
-		name,
-		containerd.WithNewSnapshot(name+"-snap", image),
-		containerd.WithNewSpec(
-			oci.WithImageConfig(image),
-			oci.WithProcessArgs(full...),
-		),
-	)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "new container: %v", err)
-	}
-
-	// Step 3: Create task
-	task, err := container.NewTask(context, cio.NewCreator(cio.WithStdio))
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "new task: %v", err)
-	}
-
-	if err := task.Start(context); err != nil {
-		task.Delete(context)
-		return nil, status.Errorf(codes.Internal, "start task: %v", err)
-	}
-
-	//server.logger.Info("Container started successfully")
-	//
-	//// Step 5: Watch for exit
-	//exitCh, _ := task.Wait(context)
-	//_ = <-exitCh
-
-	return nil, nil
+	return &rpc.CreateContainerResponse{
+		ContainerId: container.Name,
+	}, nil
 }
 
-func StartContainerdGrasslandServer(config *Config) {
+func (server *ContainerdGrasslandServer) StartContainer(context context.Context, request *rpc.StartContainerRequest) (*rpc.StartContainerResponse, error) {
+	id := request.GetContainerId()
+
+	server.logger.Info("Starting the container",
+		zap.String("containerId", id),
+	)
+
+	// TODO: valid the start container request
+	validateStartContainerRequest(request)
+
+	if err := server.containerdClient.StartContainer(context, id); err != nil {
+		return nil, status.Errorf(codes.Internal, "container start: %v", err)
+	}
+
+	server.logger.Info("Successfully started the container",
+		zap.String("containerId", id),
+	)
+
+	return &rpc.StartContainerResponse{}, nil
+}
+
+func (server *ContainerdGrasslandServer) StopContainer(context context.Context, req *rpc.StopContainerRequest) (*rpc.StopContainerResponse, error) {
+	id := req.GetContainerId()
+	timeout := req.GetTimeoutSeconds()
+
+	server.logger.Info("Stoping the container",
+		zap.String("containerId", id),
+	)
+
+	err := server.containerdClient.StopContainer(context, id, time.Duration(timeout))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "couldn't sotp container: %v", err)
+	}
+
+	server.logger.Info("Successfully stopped the container",
+		zap.String("containerId", id),
+	)
+
+	return &rpc.StopContainerResponse{}, nil
+}
+
+func (server *ContainerdGrasslandServer) RemoveContainer(context context.Context, req *rpc.RemoveContainerRequest) (*rpc.RemoveContainerResponse, error) {
+	id := req.GetContainerId()
+
+	server.logger.Info("Removing the container",
+		zap.String("containerId", id),
+	)
+
+	err := server.containerdClient.RemoveContainer(context, id)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "couldn't remove container: %v", err)
+	}
+
+	server.logger.Info("Successfully removed the container",
+		zap.String("containerId", id),
+	)
+
+	return &rpc.RemoveContainerResponse{}, nil
+}
+
+func (server *ContainerdGrasslandServer) ContainerStatus(context context.Context, req *rpc.ContainerStatusRequest) (*rpc.ContainerStatusResponse, error) {
+	id := req.GetContainerId()
+
+	server.logger.Info("Get container status",
+		zap.String("containerId", id),
+	)
+
+	containerStatus, err := server.containerdClient.ContainerStatus(context, id)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "couldn't remove container: %v", err)
+	}
+
+	server.logger.Info("Successfully removed the container",
+		zap.String("containerId", id),
+	)
+
+	return &rpc.ContainerStatusResponse{
+		ContainerId: containerStatus.Name,
+		State:       toRPCState(containerStatus.State),
+		Pid:         containerStatus.Pid,
+	}, nil
+}
+
+func StartContainerdGrasslandServer(config *Config) error {
 	ContainerGrasslandAddress := config.Address
 
 	list, err := net.Listen("tcp", ":"+ContainerGrasslandAddress)
@@ -99,13 +139,19 @@ func StartContainerdGrasslandServer(config *Config) {
 		config.Logger.Error("Failed to listen",
 			zap.Error(err),
 		)
-		return
+		return err
 	}
 
 	server := grpc.NewServer()
 
+	containerdClient, err := containerdclient.NewContainerdClient(config.Logger)
+	if err != nil {
+		return fmt.Errorf("init containerd client: %w", err)
+	}
+
 	srv := &ContainerdGrasslandServer{
-		logger: config.Logger,
+		logger:           config.Logger,
+		containerdClient: containerdClient,
 	}
 
 	rpc.RegisterRuntimeServiceServer(server, srv)
@@ -119,4 +165,6 @@ func StartContainerdGrasslandServer(config *Config) {
 			zap.Error(err),
 		)
 	}
+
+	return nil
 }
