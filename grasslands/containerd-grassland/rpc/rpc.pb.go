@@ -27,7 +27,7 @@ const (
 	ContainerState_CONTAINER_CREATED ContainerState = 0
 	ContainerState_CONTAINER_RUNNING ContainerState = 1
 	ContainerState_CONTAINER_EXITED  ContainerState = 2
-	ContainerState_CONTAINER_UNKNOW  ContainerState = 3
+	ContainerState_CONTAINER_UNKNOWN ContainerState = 3
 )
 
 // Enum value maps for ContainerState.
@@ -36,13 +36,13 @@ var (
 		0: "CONTAINER_CREATED",
 		1: "CONTAINER_RUNNING",
 		2: "CONTAINER_EXITED",
-		3: "CONTAINER_UNKNOW",
+		3: "CONTAINER_UNKNOWN",
 	}
 	ContainerState_value = map[string]int32{
 		"CONTAINER_CREATED": 0,
 		"CONTAINER_RUNNING": 1,
 		"CONTAINER_EXITED":  2,
-		"CONTAINER_UNKNOW":  3,
+		"CONTAINER_UNKNOWN": 3,
 	}
 )
 
@@ -1234,12 +1234,12 @@ const file_rpc_proto_rawDesc = "" +
 	"\x03pid\x18\x03 \x01(\rR\x03pid\x12\x1b\n" +
 	"\texit_code\x18\x04 \x01(\x05R\bexitCode\x12\x1f\n" +
 	"\vexit_reason\x18\x05 \x01(\tR\n" +
-	"exitReason*j\n" +
+	"exitReason*k\n" +
 	"\x0eContainerState\x12\x15\n" +
 	"\x11CONTAINER_CREATED\x10\x00\x12\x15\n" +
 	"\x11CONTAINER_RUNNING\x10\x01\x12\x14\n" +
-	"\x10CONTAINER_EXITED\x10\x02\x12\x14\n" +
-	"\x10CONTAINER_UNKNOW\x10\x03*1\n" +
+	"\x10CONTAINER_EXITED\x10\x02\x12\x15\n" +
+	"\x11CONTAINER_UNKNOWN\x10\x03*1\n" +
 	"\vNetworkMode\x12\x10\n" +
 	"\fNETWORK_NONE\x10\x00\x12\x10\n" +
 	"\fNETWORK_HOST\x10\x012\x97\x03\n" +

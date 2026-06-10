@@ -79,6 +79,14 @@ func (c *Client) PullImage(ctx context.Context, image *Image) (containerd.Image,
 }
 
 func (c *Client) CreateContainer(ctx context.Context, cfg *rpc.ContainerConfig) (*Container, error) {
+	id := cfg.GetMetadata().GetName()
+
+	if _, err := c.containerdClient.LoadContainer(ctx, id); err == nil {
+		return nil, fmt.Errorf("container %q already exists", id)
+	} else if !isNotFound(err) {
+		return nil, fmt.Errorf("load container %q: %w", id, err)
+	}
+
 	// Step 1: Pull
 	imageRef := &Image{
 		Image: cfg.GetImage().GetImage(),
@@ -193,11 +201,16 @@ func (c *Client) CreateContainer(ctx context.Context, cfg *rpc.ContainerConfig) 
 		containerd.WithNewSpec(specOpts...),
 	)
 	if err != nil {
+		if isAlreadyExists(err) {
+			return nil, fmt.Errorf("container %q already exists", id)
+		}
 		return nil, fmt.Errorf("create container error: %v", err)
 	}
 
 	return &Container{
-		Name: name,
+		Name:  name,
+		State: CREATED,
+		Pid:   0,
 	}, nil
 }
 
@@ -206,17 +219,27 @@ func (c *Client) StartContainer(ctx context.Context, id string) error {
 	// find the container
 	container, err := c.containerdClient.LoadContainer(ctx, id)
 	if err != nil {
-		return fmt.Errorf("container not found")
+		return fmt.Errorf("load container %q: %w", id, err)
 	}
 
-	// check if already running
-	if _, err := container.Task(ctx, nil); err == nil {
-		return fmt.Errorf("container %q already running", id)
+	task, err := container.Task(ctx, nil)
+	if err == nil {
+		st, seer := task.Status(ctx)
+
+		if seer == nil && st.Status == containerd.Running {
+			return fmt.Errorf("container %q already running", id)
+		}
+
+		// stopped or stale task-> delete before recreating
+		if _, deer := task.Delete(ctx); deer != nil && !isNotFound(deer) {
+			return fmt.Errorf("delete stable task %q: %w", id, deer)
+		}
+	} else if !isNotFound(err) {
+		return fmt.Errorf("get task %q: %w", id, err)
 	}
 
 	ioCreator := cio.NewCreator(cio.WithStdio)
-
-	task, err := container.NewTask(ctx, ioCreator)
+	task, err = container.NewTask(ctx, ioCreator)
 	if err != nil {
 		return fmt.Errorf("new task: %v", err)
 	}
@@ -265,10 +288,21 @@ func (c *Client) StopContainer(ctx context.Context, id string, timeoutSec time.D
 
 	task, err := container.Task(ctx, nil)
 	if err != nil {
+		if isNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("get task %q: %w", id, err)
+	}
+
+	st, seer := task.Status(ctx)
+	if seer == nil && st.Status == containerd.Stopped {
 		return nil
 	}
 
 	if err := task.Kill(ctx, syscall.SIGTERM); err != nil {
+		if isNotFound(err) {
+			return nil
+		}
 		return fmt.Errorf("sigterm: %w", err)
 	}
 
@@ -288,12 +322,13 @@ func (c *Client) StopContainer(ctx context.Context, id string, timeoutSec time.D
 	select {
 	case <-exitCh:
 		// exited cleanly after SIGTERM
+		return nil
 	case <-waitCtx.Done():
-		_ = task.Kill(ctx, syscall.SIGKILL)
-		<-exitCh
+		if err := task.Kill(ctx, syscall.SIGKILL); err != nil && !isNotFound(err) {
+			return fmt.Errorf("sigkill %q: %w", id, err)
+		}
+		return nil
 	}
-
-	return nil
 }
 
 func (c *Client) RemoveContainer(ctx context.Context, id string) error {
@@ -302,8 +337,20 @@ func (c *Client) RemoveContainer(ctx context.Context, id string) error {
 		return fmt.Errorf("container %q doesn't exit", id)
 	}
 
-	if _, err := container.Task(ctx, nil); err == nil {
-		return fmt.Errorf("container %q still running; stop it first", id)
+	task, err := container.Task(ctx, nil)
+	if err == nil {
+		st, seer := task.Status(ctx)
+
+		if seer == nil && st.Status == containerd.Running {
+			return fmt.Errorf("container %q still running; stop it first", id)
+		}
+
+		// delete the stopped task
+		if _, deer := task.Delete(ctx); deer != nil && !isNotFound(deer) {
+			return fmt.Errorf("delete task %q: %w", id, deer)
+		}
+	} else if !isNotFound(err) {
+		return fmt.Errorf("get task %q: %w", id, err)
 	}
 
 	err = container.Delete(ctx, containerd.WithSnapshotCleanup)
@@ -318,22 +365,49 @@ func (c *Client) RemoveContainer(ctx context.Context, id string) error {
 func (c *Client) ContainerStatus(ctx context.Context, id string) (*Container, error) {
 	container, err := c.containerdClient.LoadContainer(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("container %q doesn't exit", id)
+		return nil, fmt.Errorf("load container %q: %w", id, err)
 	}
 
 	task, err := container.Task(ctx, nil)
-	if err == nil {
-		return &Container{
-			Name:  id,
-			State: RUNNING,
-		}, nil
+	if err != nil {
+		if isNotFound(err) {
+			// no task -> created/exited
+			if c.mu != nil {
+				c.mu.Lock()
+				info, ok := c.tasks[id]
+				c.mu.Unlock()
+				if ok {
+					_ = info
+					return &Container{
+						Name:  id,
+						State: EXITED,
+						Pid:   0,
+					}, nil
+				}
+			}
+			return &Container{
+				Name:  id,
+				State: CREATED,
+				Pid:   0,
+			}, nil
+		}
+		return nil, fmt.Errorf("get task %q: %w", id, err)
 	}
 
-	pid := task.Pid()
+	st, err := task.Status(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("task status %q: %w", id, err)
+	}
+
+	state := toLocalState(st)
+	pid := uint32(0)
+	if state == RUNNING {
+		pid = task.Pid()
+	}
 
 	return &Container{
 		Name:  id,
-		State: CREATED,
+		State: state,
 		Pid:   pid,
 	}, nil
 }

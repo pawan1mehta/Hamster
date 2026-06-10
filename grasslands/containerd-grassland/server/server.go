@@ -120,7 +120,7 @@ func (server *ContainerdGrasslandServer) ContainerStatus(context context.Context
 		return nil, status.Errorf(codes.Internal, "couldn't remove container: %v", err)
 	}
 
-	server.logger.Info("Successfully removed the container",
+	server.logger.Info("Successfully get the container",
 		zap.String("containerId", id),
 	)
 

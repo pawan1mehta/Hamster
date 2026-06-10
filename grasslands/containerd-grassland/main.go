@@ -2,6 +2,7 @@ package main
 
 import (
 	"containerdgrassland/server"
+	"fmt"
 	"log"
 
 	"go.uber.org/zap"
@@ -20,5 +21,8 @@ func main() {
 		Address: "6969",
 	}
 
-	server.StartContainerdGrasslandServer(config)
+	err = server.StartContainerdGrasslandServer(config)
+	if err != nil {
+		fmt.Printf("error while starting the containerd-grassland-server! %v", err)
+	}
 }

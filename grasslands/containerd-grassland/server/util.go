@@ -22,8 +22,8 @@ func toRPCState(s containerd.ContainerState) rpc.ContainerState {
 	case containerd.EXITED:
 		return rpc.ContainerState_CONTAINER_EXITED
 	case containerd.UNKNOW:
-		return rpc.ContainerState_CONTAINER_UNKNOW
+		return rpc.ContainerState_CONTAINER_UNKNOWN
 	default:
-		return rpc.ContainerState_CONTAINER_UNKNOW
+		return rpc.ContainerState_CONTAINER_UNKNOWN
 	}
 }
